@@ -37,5 +37,7 @@ class MainLayout(QWidget):
     def handle_file_selection(self, file_path):
         self.selected_file = file_path
         self.file_selected.emit(file_path)
+        self.question_selector.setEnabled(True)
+        self.question_selector.set_file_path(file_path)
         self.dimension_config.setEnabled(True)
         self.dimension_config.set_file_path(file_path)

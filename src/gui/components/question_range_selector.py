@@ -1,30 +1,51 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLabel, 
-                             QSpinBox, QHBoxLayout, QPushButton)
-from ..dialogs.config_popup import ConfigPopup
+
+# src/gui/components/question_range_selector.py
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton,
+                           QLabel, QSpinBox, QHBoxLayout, QMessageBox)
+from ..dialogs.question_preview import QuestionPreviewDialog
+import pandas as pd
 
 class QuestionRangeSelector(QWidget):
     def __init__(self):
         super().__init__()
+        self.file_path = None
+        self.selected_questions = []
+        self.setupUI()
+        self.setEnabled(False)
+        
+    def setupUI(self):
         layout = QVBoxLayout()
         
-        # Create range selection widgets
-        range_layout = QHBoxLayout()
-        self.start_spin = QSpinBox()
-        self.end_spin = QSpinBox()
-        
-        range_layout.addWidget(QLabel("Question Range:"))
-        range_layout.addWidget(self.start_spin)
-        range_layout.addWidget(QLabel("to"))
-        range_layout.addWidget(self.end_spin)
-        
         # Configure button
-        self.config_button = QPushButton("Configure Questions")
+        self.config_button = QPushButton("Select Questions / اختيار الأسئلة")
         self.config_button.clicked.connect(self.show_config)
         
-        layout.addLayout(range_layout)
+        # Selected questions label
+        self.selection_label = QLabel("No questions selected / لم يتم اختيار الأسئلة")
+        
         layout.addWidget(self.config_button)
+        layout.addWidget(self.selection_label)
         self.setLayout(layout)
     
+    def set_file_path(self, file_path):
+        self.file_path = file_path
+        self.show_config()  # Automatically show question selection dialog
+    
     def show_config(self):
-        dialog = ConfigPopup(self.start_spin.value(), self.end_spin.value())
-        dialog.exec_()
+        if not self.file_path:
+            return
+            
+        try:
+            dialog = QuestionPreviewDialog(self.file_path, self)
+            if dialog.exec_() == QuestionPreviewDialog.Accepted:
+                self.selected_questions = dialog.selected_columns
+                self.update_selection_label()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error loading file: {str(e)}")
+    
+    def update_selection_label(self):
+        if self.selected_questions:
+            count = len(self.selected_questions)
+            self.selection_label.setText(f"Selected {count} questions / تم اختيار {count} سؤال")
+        else:
+            self.selection_label.setText("No questions selected / لم يتم اختيار الأسئلة")
