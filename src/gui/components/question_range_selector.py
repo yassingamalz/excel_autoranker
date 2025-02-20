@@ -1,6 +1,6 @@
-# src/gui/components/question_range_selector.py
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton,
-                           QLabel, QSpinBox, QHBoxLayout, QMessageBox)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
+                           QScrollArea, QMessageBox, QWidget)
+from PyQt5.QtCore import Qt
 from ..dialogs.question_preview import QuestionPreviewDialog
 from ...utils.logger import AppLogger
 import pandas as pd
@@ -24,15 +24,56 @@ class QuestionRangeSelector(QWidget):
         
         # Selected questions label
         self.selection_label = QLabel("No questions selected / لم يتم اختيار الأسئلة")
+        self.selection_label.setWordWrap(True)
         
-        # Add detailed question list
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setMinimumHeight(200)  # Set minimum height
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        # Container for questions
         self.question_details = QLabel("")
+        self.question_details.setWordWrap(True)
+        self.question_details.setStyleSheet("""
+            QLabel {
+                background-color: #f8f9fa;
+                padding: 10px;
+                border-radius: 4px;
+                border: 1px solid #dee2e6;
+            }
+        """)
+        
+        scroll.setWidget(self.question_details)
         
         layout.addWidget(self.config_button)
         layout.addWidget(self.selection_label)
-        layout.addWidget(self.question_details)
+        layout.addWidget(scroll)
         self.setLayout(layout)
     
+    def clean_question_text(self, text):
+        """Remove leading numbers and clean up the question text."""
+        import re
+        # Remove patterns like "1.", "1-", "1 ", etc.
+        cleaned = re.sub(r'^\d+[\.\-\s]*', '', text.strip())
+        # Remove any remaining leading numbers and dots
+        cleaned = re.sub(r'^\d+\.\s*', '', cleaned)
+        cleaned = re.sub(r'^\d+\s*', '', cleaned)
+        return cleaned.strip()
+    
+    def show_config(self):
+        if not self.file_path:
+            return
+            
+        try:
+            dialog = QuestionPreviewDialog(self.file_path, self)
+            if dialog.exec_() == QuestionPreviewDialog.Accepted:
+                self.selected_questions = dialog.selected_columns
+                self.update_selection_label()
+        except Exception as e:
+            self.logger.error(f"Error in show_config: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error loading file: {str(e)}")
+
     def set_file_path(self, file_path):
         self.logger.info(f"Setting file path: {file_path}")
         self.file_path = file_path
@@ -44,46 +85,29 @@ class QuestionRangeSelector(QWidget):
             self.logger.error(f"Error loading file: {str(e)}")
             QMessageBox.critical(self, "Error", f"Error loading file: {str(e)}")
     
-    def show_config(self):
-        if not self.file_path:
-            self.logger.warning("Attempted to show config without file path")
-            return
-            
-        try:
-            self.logger.debug("Opening question preview dialog")
-            dialog = QuestionPreviewDialog(self.file_path, self)
-            if dialog.exec_() == QuestionPreviewDialog.Accepted:
-                self.selected_questions = dialog.selected_columns
-                self.logger.info(f"Selected {len(self.selected_questions)} questions")
-                self.update_selection_label()
-        except Exception as e:
-            self.logger.error(f"Error in show_config: {str(e)}")
-            QMessageBox.critical(self, "Error", f"Error loading file: {str(e)}")
-    
     def update_selection_label(self):
         try:
             if self.selected_questions:
                 count = len(self.selected_questions)
-                # Get the actual column names for detailed display
                 selected_cols = [self.df.columns[i] for i in self.selected_questions]
+                cleaned_cols = [self.clean_question_text(col) for col in selected_cols]
                 
-                # Update main label
                 self.selection_label.setText(
                     f"Selected {count} questions / تم اختيار {count} سؤال"
                 )
                 
-                # Update detailed list
-                details = "Selected questions:\n"
-                for i, col in enumerate(selected_cols, 1):
-                    details += f"{i}. {col}\n"
-                self.question_details.setText(details)
+                details = "<p style='font-weight: bold;'>Selected questions:</p>"
+                for i, question in enumerate(cleaned_cols, 1):
+                    details += f"<p>{i}. {question}</p>"
                 
-                self.logger.debug(f"Updated selection label with {count} questions")
-                self.logger.debug(f"Selected columns: {selected_cols}")
+                self.question_details.setText(details)
+                self.logger.debug(f"Updated selection label with {count} cleaned questions")
+                
             else:
                 self.selection_label.setText("No questions selected / لم يتم اختيار الأسئلة")
                 self.question_details.setText("")
                 self.logger.debug("No questions selected")
+                
         except Exception as e:
             self.logger.error(f"Error updating selection label: {str(e)}")
             self.selection_label.setText("Error updating selection / خطأ في التحديث")
