@@ -1,4 +1,5 @@
-version: '3'
+version: '3.8'
+
 services:
   app:
     build: .
@@ -7,5 +8,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
       - DISPLAY=${DISPLAY}
-      - QT_QPA_PLATFORM=xcb  
-    network_mode: host
+      - QT_QPA_PLATFORM=xcb
+      - PYTHONUNBUFFERED=1
+    network_mode: host  # Required for X11
+    ipc: host  # Helps with Qt shared memory issues
