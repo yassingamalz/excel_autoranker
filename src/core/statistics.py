@@ -1,27 +1,54 @@
-# src/core/statistics.py
 import pandas as pd
 import numpy as np
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment, Border, Side
 
 def calculate_cronbach_alpha(data, questions):
+    """
+    Detailed Cronbach's Alpha calculation
+    
+    :param data: DataFrame containing the data
+    :param questions: List of question column names
+    :return: Dictionary with detailed Cronbach's Alpha calculation components
+    """
+    # Select only the specified questions and convert to numeric
     df = data[questions].apply(pd.to_numeric, errors='coerce')
-    total_scores = df.sum(axis=1)
+    
+    # حساب تباين كل سؤال - Variance of each question
     question_variances = df.var()
+    
+    # مجموع تباينات الأسئلة - Sum of question variances
+    sum_question_variances = question_variances.sum()
+    
+    # حساب المجموع الكلي لكل مشارك - Total score for each participant
+    total_scores = df.sum(axis=1)
+    
+    # تباين المجموع الكلي - Variance of total scores
     total_variance = total_scores.var()
+    
+    # Number of questions
     n_items = len(questions)
-    cronbach_alpha = (n_items / (n_items - 1)) * (1 - question_variances.sum() / total_variance)
+    
+    # Cronbach's Alpha calculation
+    cronbach_alpha = (n_items / (n_items - 1)) * (1 - (sum_question_variances / total_variance))
     
     return {
-        'alpha': cronbach_alpha,
         'n_items': n_items,
         'question_variances': question_variances,
-        'sum_variances': question_variances.sum(),
+        'sum_question_variances': sum_question_variances,
+        'total_scores': total_scores,
         'total_variance': total_variance,
-        'total_scores': total_scores
+        'cronbach_alpha': cronbach_alpha
     }
 
 def calculate_split_half_reliability(data, questions):
+    """
+    Calculate split-half reliability
+    
+    :param data: DataFrame containing the data
+    :param questions: List of question column names
+    :return: Dictionary with split-half reliability metrics
+    """
     df = data[questions].apply(pd.to_numeric, errors='coerce')
     
     # Split questions into odd and even
@@ -46,6 +73,14 @@ def calculate_split_half_reliability(data, questions):
     }
 
 def calculate_construct_validity(data, questions, dimensions):
+    """
+    Calculate construct validity for dimensions
+    
+    :param data: DataFrame containing the data
+    :param questions: List of question column names
+    :param dimensions: Dictionary of dimensions with their questions
+    :return: Dictionary with construct validity metrics
+    """
     df = data[questions].apply(pd.to_numeric, errors='coerce')
     
     # Calculate total scores
@@ -55,7 +90,10 @@ def calculate_construct_validity(data, questions, dimensions):
     # Calculate dimension scores and correlations
     dimension_stats = {}
     for dim_name, dim_questions in dimensions.items():
-        dim_scores = data[dim_questions].apply(pd.to_numeric, errors='coerce').sum(axis=1)
+        # Ensure dim_questions are in the correct order and exist in the data
+        valid_dim_questions = [q for q in dim_questions if q in data.columns]
+        
+        dim_scores = data[valid_dim_questions].apply(pd.to_numeric, errors='coerce').sum(axis=1)
         dim_ranks = dim_scores.rank(method='average')
         correlation = total_ranks.corr(dim_ranks, method='spearman')
         
@@ -72,38 +110,53 @@ def calculate_construct_validity(data, questions, dimensions):
     }
 
 def export_statistics(filepath, data, questions, dimensions):
+    """
+    Export statistical analysis to Excel
+    
+    :param filepath: Path to save the Excel file
+    :param data: DataFrame containing the data
+    :param questions: List of question column names
+    :param dimensions: Dictionary of dimensions with their questions
+    """
     wb = Workbook()
     ws = wb.active
     ws.title = "Statistical_Analysis"
     
-    # Cronbach's Alpha
+    # Cronbach's Alpha Calculation
     alpha_stats = calculate_cronbach_alpha(data, questions)
-    row = 1
+    
+    # Styling
+    header_font = Font(bold=True, size=14)
+    subheader_font = Font(bold=True)
+    
+    # Main Title
     ws['A1'] = "Cronbach's Alpha / معامل ألفا كرونباخ"
-    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].font = header_font
     
-    # Split-Half Reliability
-    split_half_stats = calculate_split_half_reliability(data, questions)
-    row = len(dimensions) + 7
-    ws[f'A{row}'] = "Split-Half Reliability / ثبات التجزئة النصفية"
-    ws[f'A{row}'].font = Font(bold=True, size=14)
-    row += 1
-    ws[f'A{row}'] = "Pearson Correlation / معامل ارتباط بيرسون"
-    ws[f'B{row}'] = split_half_stats['pearson_correlation']
-    row += 1
-    ws[f'A{row}'] = "Spearman-Brown Coefficient / معامل سبيرمان-براون"
-    ws[f'B{row}'] = split_half_stats['spearman_brown']
+    # Detailed Breakdown Headers
+    headers = [
+        "عدد الأسئلة (N of Items)", 
+        "مجموع تباينات الأسئلة (Sum of Question Variances)", 
+        "تباين المجموع الكلي (Total Score Variance)", 
+        "معامل ألفا كرونباخ (Cronbach's Alpha)"
+    ]
     
-    # Construct Validity
-    construct_stats = calculate_construct_validity(data, questions, dimensions)
-    row += 2
-    ws[f'A{row}'] = "Construct Validity / صدق البناء"
-    ws[f'A{row}'].font = Font(bold=True, size=14)
-    row += 1
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=3, column=col, value=header)
+        cell.font = subheader_font
     
-    for dim_name, stats in construct_stats['dimensions'].items():
-        ws[f'A{row}'] = f"Dimension {dim_name} / البعد {dim_name}"
-        ws[f'B{row}'] = stats['correlation']
-        row += 1
+    # Fill in Cronbach's Alpha values
+    ws.cell(row=4, column=1, value=alpha_stats['n_items'])
+    ws.cell(row=4, column=2, value=alpha_stats['sum_question_variances'])
+    ws.cell(row=4, column=3, value=alpha_stats['total_variance'])
+    ws.cell(row=4, column=4, value=alpha_stats['cronbach_alpha'])
+    
+    # Individual Question Variances
+    ws['A6'] = "تباين كل سؤال (Individual Question Variances)"
+    ws['A6'].font = subheader_font
+    
+    for idx, (question, variance) in enumerate(alpha_stats['question_variances'].items(), start=7):
+        ws.cell(row=idx, column=1, value=question)
+        ws.cell(row=idx, column=2, value=variance)
     
     wb.save(filepath)
