@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, 
-                             QLabel, QSpinBox)
+                             QLabel, QSpinBox, QHBoxLayout)
 from ..dialogs.dimension_popup import DimensionPopup
 
 class DimensionConfig(QWidget):
