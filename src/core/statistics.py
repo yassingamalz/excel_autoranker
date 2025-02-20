@@ -4,39 +4,32 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 
 def calculate_cronbach_alpha(data, questions):
-    """
-    Detailed Cronbach's Alpha calculation
-    
-    :param data: DataFrame containing the data
-    :param questions: List of question column names
-    :return: Dictionary with detailed Cronbach's Alpha calculation components
-    """
-    # Select only the specified questions and convert to numeric
+    # Convert to numeric, ensuring all questions are processed
     df = data[questions].apply(pd.to_numeric, errors='coerce')
     
-    # حساب تباين كل سؤال - Variance of each question
-    question_variances = df.var()
-    
-    # مجموع تباينات الأسئلة - Sum of question variances
-    sum_question_variances = question_variances.sum()
-    
-    # حساب المجموع الكلي لكل مشارك - Total score for each participant
-    total_scores = df.sum(axis=1)
-    
-    # تباين المجموع الكلي - Variance of total scores
-    total_variance = total_scores.var()
-    
-    # Number of questions
+    # Number of items
     n_items = len(questions)
     
+    # Individual question variances
+    question_variances = df.var()
+    
+    # Sum of question variances
+    sum_question_variances = question_variances.sum()
+    
+    # Total scores (sum of all questions for each participant)
+    total_scores = df.sum(axis=1)
+    
+    # Total score variance
+    total_variance = total_scores.var()
+    
     # Cronbach's Alpha calculation
+    # α = (k / (k-1)) * (1 - (Σs²ᵢ / s²ₜ))
     cronbach_alpha = (n_items / (n_items - 1)) * (1 - (sum_question_variances / total_variance))
     
     return {
         'n_items': n_items,
         'question_variances': question_variances,
         'sum_question_variances': sum_question_variances,
-        'total_scores': total_scores,
         'total_variance': total_variance,
         'cronbach_alpha': cronbach_alpha
     }
@@ -110,14 +103,6 @@ def calculate_construct_validity(data, questions, dimensions):
     }
 
 def export_statistics(filepath, data, questions, dimensions):
-    """
-    Export statistical analysis to Excel
-    
-    :param filepath: Path to save the Excel file
-    :param data: DataFrame containing the data
-    :param questions: List of question column names
-    :param dimensions: Dictionary of dimensions with their questions
-    """
     wb = Workbook()
     ws = wb.active
     ws.title = "Statistical_Analysis"
@@ -125,13 +110,9 @@ def export_statistics(filepath, data, questions, dimensions):
     # Cronbach's Alpha Calculation
     alpha_stats = calculate_cronbach_alpha(data, questions)
     
-    # Styling
-    header_font = Font(bold=True, size=14)
-    subheader_font = Font(bold=True)
-    
     # Main Title
     ws['A1'] = "Cronbach's Alpha / معامل ألفا كرونباخ"
-    ws['A1'].font = header_font
+    ws['A1'].font = Font(bold=True, size=14)
     
     # Detailed Breakdown Headers
     headers = [
@@ -143,20 +124,20 @@ def export_statistics(filepath, data, questions, dimensions):
     
     for col, header in enumerate(headers, start=1):
         cell = ws.cell(row=3, column=col, value=header)
-        cell.font = subheader_font
+        cell.font = Font(bold=True)
     
     # Fill in Cronbach's Alpha values
     ws.cell(row=4, column=1, value=alpha_stats['n_items'])
-    ws.cell(row=4, column=2, value=alpha_stats['sum_question_variances'])
-    ws.cell(row=4, column=3, value=alpha_stats['total_variance'])
-    ws.cell(row=4, column=4, value=alpha_stats['cronbach_alpha'])
+    ws.cell(row=4, column=2, value=round(alpha_stats['sum_question_variances'], 5))
+    ws.cell(row=4, column=3, value=round(alpha_stats['total_variance'], 5))
+    ws.cell(row=4, column=4, value=round(alpha_stats['cronbach_alpha'], 6))
     
     # Individual Question Variances
     ws['A6'] = "تباين كل سؤال (Individual Question Variances)"
-    ws['A6'].font = subheader_font
+    ws['A6'].font = Font(bold=True)
     
     for idx, (question, variance) in enumerate(alpha_stats['question_variances'].items(), start=7):
         ws.cell(row=idx, column=1, value=question)
-        ws.cell(row=idx, column=2, value=variance)
+        ws.cell(row=idx, column=2, value=round(variance, 6))
     
     wb.save(filepath)
