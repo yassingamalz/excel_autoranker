@@ -45,13 +45,13 @@ class StatisticalAnalyzer:
             self.logger.error("Full error details:", exc_info=True)
             raise
         
-    def analyze_and_export(self, output_dir='output'):
+    def analyze_and_export(self, output_dir='/app/data/output'):
         try:
             self.logger.info("Starting analysis")
             
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-                self.logger.debug(f"Created output directory: {output_dir}")
+            # Ensure output directory exists
+            os.makedirs(output_dir, exist_ok=True)
+            self.logger.debug(f"Ensuring output directory: {output_dir}")
             
             output_file = os.path.join(output_dir, 'statistical_analysis.xlsx')
             self.logger.info(f"Exporting analysis to: {output_file}")
@@ -59,22 +59,22 @@ class StatisticalAnalyzer:
             # Clean data before analysis
             self.clean_data()
             
-            # Log data shape before export
-            self.logger.debug(f"Data shape before export: {self.data.shape}")
-            self.logger.debug(f"First few questions: {self.questions[:5]}")
-            self.logger.debug("Sample of first few rows:")
-            self.logger.debug(self.data[self.questions[:5]].head().to_string())
-            
             export_statistics(output_file, self.data, self.questions, self.dimensions)
             self.logger.info("Analysis completed successfully")
             
-            return output_file
+            # Verify file exists
+            if os.path.exists(output_file):
+                self.logger.info(f"File successfully created: {output_file}")
+                return output_file
+            else:
+                self.logger.error("File was not created")
+                raise FileNotFoundError("Output file was not created")
             
         except Exception as e:
             self.logger.error(f"Error during analysis: {str(e)}")
             self.logger.error("Full error details:", exc_info=True)
             raise
-            
+        
     def clean_data(self):
         """Clean and prepare data for analysis"""
         try:
