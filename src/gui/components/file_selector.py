@@ -1,13 +1,14 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLabel, QFileDialog
-from ..utils.validators import validate_excel_file
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog
+from ..utils.language_manager import LanguageManager
+from .excel_preview_dialog import ExcelPreviewDialog
 
 class FileSelector(QWidget):
     def __init__(self):
         super().__init__()
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         
-        self.file_label = QLabel("No file selected")
-        self.select_button = QPushButton("Select Excel File")
+        self.file_label = QLabel(LanguageManager.get_text('no_file'))
+        self.select_button = QPushButton(LanguageManager.get_text('file_select'))
         self.select_button.clicked.connect(self.select_file)
         
         layout.addWidget(self.file_label)
@@ -17,10 +18,13 @@ class FileSelector(QWidget):
     def select_file(self):
         file_name, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Excel File",
+            LanguageManager.get_text('file_select'),
             "",
             "Excel Files (*.xlsx *.xls)"
         )
-        if file_name and validate_excel_file(file_name):
-            self.file_label.setText(file_name)
-            # Emit signal for file selected
+        
+        if file_name:
+            preview_dialog = ExcelPreviewDialog(file_name, self)
+            if preview_dialog.exec_() == ExcelPreviewDialog.Accepted:
+                self.file_label.setText(file_name)
+                self.selected_columns = preview_dialog.selected_columns

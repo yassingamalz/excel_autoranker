@@ -8,6 +8,7 @@ excel_autoranker/
 │   │   ├── components/
 │   │   │   ├── file_selector.py
 │   │   │   ├── question_range_selector.py
+│   │   │   ├── excel_preview_dialog.py
 │   │   │   ├── dimension_config.py
 │   │   │   ├── data_cleaner.py
 │   │   │   └── progress_indicator.py
@@ -20,6 +21,7 @@ excel_autoranker/
 │   │   │   └── analysis_layout.py
 │   │   ├── utils/
 │   │   │   ├── validators.py
+│   │   │   ├── language_manager.py
 │   │   │   └── styles.py
 │   │   ├── assets/
 │   │   ├── __init__.py
