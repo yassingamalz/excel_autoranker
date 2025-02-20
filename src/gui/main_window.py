@@ -1,42 +1,98 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QComboBox
-from .layouts.main_layout import MainLayout
-from .utils.language_manager import LanguageManager
+# src/gui/layouts/main_layout.py
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox
+from PyQt5.QtCore import pyqtSignal
+from ..components.file_selector import FileSelector
+from ..components.question_range_selector import QuestionRangeSelector
+from ..components.dimension_config import DimensionConfig
+from ..components.data_cleaner import DataCleaner
+from ..components.progress_indicator import ProgressIndicator
+from ...core.analyzer import StatisticalAnalyzer
 
-class MainWindow(QMainWindow):
+class MainLayout(QWidget):
+    file_selected = pyqtSignal(str)
+
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(LanguageManager.get_text('app_title'))
-        self.setMinimumSize(800, 600)
+        self.selected_file = None
+        self.setupUI()
         
-        self.setupLanguageSelector()
+    def setupUI(self):
+        layout = QVBoxLayout()
         
-        main_widget = MainLayout()
-        self.setCentralWidget(main_widget)
+        self.file_selector = FileSelector()
+        self.question_selector = QuestionRangeSelector()
+        self.dimension_config = DimensionConfig()
+        self.data_cleaner = DataCleaner()
+        self.progress = ProgressIndicator()
+        
+        # Add analysis button
+        self.analyze_button = QPushButton("Run Analysis / تشغيل التحليل")
+        self.analyze_button.clicked.connect(self.run_analysis)
+        self.analyze_button.setEnabled(False)
+        
+        self.file_selector.file_selected.connect(self.handle_file_selection)
+        
+        layout.addWidget(self.file_selector)
+        layout.addWidget(self.question_selector)
+        layout.addWidget(self.dimension_config)
+        layout.addWidget(self.data_cleaner)
+        layout.addWidget(self.analyze_button)
+        layout.addWidget(self.progress)
+        
+        self.setLayout(layout)
     
-    def setupLanguageSelector(self):
-        lang_widget = QWidget()
-        lang_layout = QVBoxLayout()
-        
-        self.lang_combo = QComboBox()
-        self.lang_combo.addItems(['English / العربية', 'العربية / English'])
-        self.lang_combo.currentIndexChanged.connect(self.changeLanguage)
-        
-        lang_layout.addWidget(self.lang_combo)
-        lang_widget.setLayout(lang_layout)
-        
-        self.statusBar().addPermanentWidget(lang_widget)
+    def handle_file_selection(self, file_path):
+        self.selected_file = file_path
+        self.file_selected.emit(file_path)
+        self.question_selector.setEnabled(True)
+        self.question_selector.set_file_path(file_path)
+        self.dimension_config.setEnabled(True)
+        self.dimension_config.set_file_path(file_path)
+        self.analyze_button.setEnabled(True)
     
-    def changeLanguage(self, index):
-        lang = 'ar' if index == 1 else 'en'
-
-def run_app():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    run_app()
-
-__all__ = ['run_app']
+    def run_analysis(self):
+        try:
+            if not self.selected_file:
+                raise ValueError("No file selected")
+            
+            if not self.question_selector.selected_questions:
+                raise ValueError("No questions selected")
+            
+            if not self.dimension_config.dimension_data:
+                raise ValueError("No dimensions configured")
+            
+            self.progress.update_progress(10, "Starting analysis...")
+            
+            # Create dimensions dictionary for analyzer
+            dimensions = {
+                str(dim_num): self.question_selector.selected_questions[cols[0]:cols[-1]+1]
+                for dim_num, cols in self.dimension_config.dimension_data.items()
+            }
+            
+            # Initialize analyzer
+            analyzer = StatisticalAnalyzer(
+                self.selected_file,
+                self.question_selector.selected_questions,
+                dimensions
+            )
+            
+            self.progress.update_progress(30, "Running statistical analysis...")
+            
+            # Run analysis and get output file
+            output_file = analyzer.analyze_and_export()
+            
+            self.progress.update_progress(100, "Analysis complete!")
+            
+            QMessageBox.information(
+                self,
+                "Analysis Complete / اكتمل التحليل",
+                f"Results saved to:\n{output_file}"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error / خطأ",
+                str(e)
+            )
+            self.progress.update_progress(0, "Analysis failed")

@@ -1,11 +1,12 @@
 # src/gui/layouts/main_layout.py
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox
 from PyQt5.QtCore import pyqtSignal
-from ..components.file_selector import FileSelector
-from ..components.question_range_selector import QuestionRangeSelector
-from ..components.dimension_config import DimensionConfig
-from ..components.data_cleaner import DataCleaner
-from ..components.progress_indicator import ProgressIndicator
+from src.gui.components.file_selector import FileSelector
+from src.gui.components.question_range_selector import QuestionRangeSelector
+from src.gui.components.dimension_config import DimensionConfig
+from src.gui.components.data_cleaner import DataCleaner
+from src.gui.components.progress_indicator import ProgressIndicator
+from src.core.analyzer import StatisticalAnalyzer
 
 class MainLayout(QWidget):
     file_selected = pyqtSignal(str)
