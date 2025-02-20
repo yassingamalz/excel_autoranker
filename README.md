@@ -5,6 +5,25 @@
 excel_autoranker/
 ├── src/
 │   ├── gui/          # Graphical user interface components
+│   │   ├── components/
+│   │   │   ├── file_selector.py
+│   │   │   ├── question_range_selector.py
+│   │   │   ├── dimension_config.py
+│   │   │   ├── data_cleaner.py
+│   │   │   └── progress_indicator.py
+│   │   ├── dialogs/
+│   │   │   ├── dimension_popup.py
+│   │   │   ├── config_popup.py
+│   │   │   └── error_dialog.py
+│   │   ├── layouts/
+│   │   │   ├── main_layout.py
+│   │   │   └── analysis_layout.py
+│   │   ├── utils/
+│   │   │   ├── validators.py
+│   │   │   └── styles.py
+│   │   ├── assets/
+│   │   ├── __init__.py
+│   │   └── main_window.py
 │   ├── core/         # Core data processing functionality
 │   ├── statistical/  # Statistical analysis implementations
 │   ├── reports/      # Report generation modules
