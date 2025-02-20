@@ -74,7 +74,7 @@ def calculate_construct_validity(data, questions, dimensions):
 def export_statistics(filepath, data, questions, dimensions):
     wb = Workbook()
     ws = wb.active
-    ws.title = "Statistical Analysis / التحليل الإحصائي"
+    ws.title = "Statistical_Analysis"
     
     # Cronbach's Alpha
     alpha_stats = calculate_cronbach_alpha(data, questions)
