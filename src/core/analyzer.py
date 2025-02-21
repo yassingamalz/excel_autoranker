@@ -31,6 +31,17 @@ class StatisticalAnalyzer:
             self.questions = [self.data.columns[i] for i in range(first_question_col, selected_columns[-1] + 1)]
             self.logger.debug(f"Mapped column names: {self.questions}")
             
+            # Process dimensions - Map column indices to actual column names
+            self.dimensions = {}
+            for dim_num, col_indices in dimensions.items():
+                dim_cols = []
+                for idx in col_indices:
+                    if idx < len(self.data.columns):
+                        dim_cols.append(self.data.columns[idx])
+                if dim_cols:  # Only add dimension if it has valid columns
+                    self.dimensions[dim_num] = dim_cols
+                    self.logger.debug(f"Dimension {dim_num} columns: {dim_cols}")
+            
         except Exception as e:
             self.logger.error(f"Error initializing analyzer: {str(e)}")
             self.logger.error("Full error details:", exc_info=True)
@@ -45,7 +56,7 @@ class StatisticalAnalyzer:
             self.clean_data()
             
             # Create statistics manager and run analysis
-            stats_manager = StatisticsManager(self.data, self.questions)
+            stats_manager = StatisticsManager(self.data, self.questions, self.dimensions)
             output_file = stats_manager.analyze_and_export(output_dir)
             
             self.logger.info("Analysis completed successfully")

@@ -1,5 +1,6 @@
 # src/core/formatters/cronbach_formatter.py
 from openpyxl import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from typing import Dict
 
@@ -7,13 +8,16 @@ class CronbachFormatter:
     """Formats Cronbach's Alpha results into Excel worksheet"""
     
     @staticmethod
-    def format_results(wb: Workbook, results: Dict) -> None:
-        """
-        Format Cronbach's Alpha results into a worksheet
-        """
+    def format_results(wb: Workbook, results: Dict, prefix: str = "") -> None:
+        """Format results to the active sheet with optional prefix"""
         ws = wb.active
-        ws.title = "Cronbach Alpha - معامل ألفا"
-        
+        title_prefix = f"{prefix} " if prefix else ""
+        ws.title = f"{title_prefix}Cronbach Alpha - معامل ألفا"
+        CronbachFormatter.format_results_to_sheet(ws, results)
+
+    @staticmethod
+    def format_results_to_sheet(ws: Worksheet, results: Dict) -> None:
+        """Format results to a specific worksheet"""
         # Apply headers
         headers = [
             "Metric / المقياس",
