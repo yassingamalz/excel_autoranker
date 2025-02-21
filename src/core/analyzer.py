@@ -33,11 +33,18 @@ class StatisticalAnalyzer:
             
             # Process dimensions - Map column indices to actual column names
             self.dimensions = {}
-            for dim_num, col_indices in dimensions.items():
-                dim_cols = []
-                for idx in col_indices:
-                    if idx < len(self.data.columns):
-                        dim_cols.append(self.data.columns[idx])
+            sorted_dim_nums = sorted(dimensions.keys())
+            for i, dim_num in enumerate(sorted_dim_nums):
+                col_indices = dimensions[dim_num]
+                # For last dimension, take all remaining columns
+                if i == len(sorted_dim_nums) - 1:
+                    # Start from the last element of the previous dimension
+                    prev_dim = sorted_dim_nums[i-1]
+                    start_idx = dimensions[prev_dim][-1] + 1
+                    end_idx = selected_columns[-1] + 1
+                    col_indices = list(range(start_idx, end_idx))
+                    
+                dim_cols = [self.data.columns[idx] for idx in col_indices if idx < len(self.data.columns)]
                 if dim_cols:  # Only add dimension if it has valid columns
                     self.dimensions[dim_num] = dim_cols
                     self.logger.debug(f"Dimension {dim_num} columns: {dim_cols}")
