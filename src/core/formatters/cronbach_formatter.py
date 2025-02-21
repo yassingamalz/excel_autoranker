@@ -30,8 +30,14 @@ class CronbachFormatter:
             ("Total Items / إجمالي العناصر", 
              results['n_items'], 
              ""),
+            ("Sum of Item Variances / مجموع تباينات الأسئلة",
+             round(sum(results['item_variances'].values()), 6),
+             ""),
+            ("Total Score Variance / تباين المجموع الكلي",
+             round(results['total_variance'], 6),
+             ""),
             ("Cronbach's Alpha / معامل ألفا كرونباخ",
-             round(results['alpha'], 3) if results['alpha'] is not None else "N/A",
+             round(results['alpha'], 6) if results['alpha'] is not None else "N/A",
              results.get('interpretation', ''))
         ]
         
