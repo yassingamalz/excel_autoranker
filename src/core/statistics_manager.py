@@ -15,9 +15,16 @@ class StatisticsManager:
         self.dimensions = dimensions
         self.cronbach = CronbachAlphaCalculator()
         
-        self.logger.info(f"StatisticsManager initialized with {len(questions)} questions and {len(dimensions)} dimensions")
+        self.logger.info("\n" + "="*80)
+        self.logger.info("STATISTICS CALCULATION SETUP")
+        self.logger.info(f"Total questions: {len(questions)}")
+        self.logger.info(f"Total dimensions: {len(dimensions)}")
+        self.logger.info("-"*80)
+        self.logger.info("DIMENSIONS BREAKDOWN:")
         for dim_num, dim_cols in dimensions.items():
-            self.logger.debug(f"Dimension {dim_num}: {len(dim_cols)} columns - {dim_cols}")
+            self.logger.info(f"Dimension {dim_num} ({len(dim_cols)} questions):")
+            self.logger.info(f"Questions: {','.join(dim_cols)}")
+            self.logger.info("-"*40)
 
     def analyze_and_export(self, output_dir: str = '/app/data/output') -> str:
         """

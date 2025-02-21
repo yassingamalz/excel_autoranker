@@ -37,31 +37,35 @@ class StatisticalAnalyzer:
             # Process dimensions - Map column indices to actual column names
             self.dimensions = {}
             sorted_dim_nums = sorted(dimensions.keys())
-            self.logger.info(f"Processing {len(sorted_dim_nums)} dimensions")
+            
+            self.logger.info("\n" + "="*80)
+            self.logger.info("DIMENSIONS MAPPING DETAILS")
+            self.logger.info(f"Total number of dimensions to process: {len(sorted_dim_nums)}")
+            self.logger.info("="*80)
             
             for i, dim_num in enumerate(sorted_dim_nums):
-                self.logger.debug(f"Processing dimension {dim_num} ({i+1} of {len(sorted_dim_nums)})")
+                self.logger.info("\n" + "-"*80)
+                self.logger.info(f"DIMENSION {dim_num} ({i+1}/{len(sorted_dim_nums)})")
                 
                 if i < len(sorted_dim_nums) - 1:
-                    # Handle regular dimensions
                     col_indices = dimensions[dim_num]
-                    self.logger.debug(f"Dimension {dim_num} original indices: {col_indices}")
+                    self.logger.info(f"Original column indices: {','.join(map(str, col_indices))}")
                 else:
-                    # Handle last dimension
                     prev_dim = sorted_dim_nums[i-1]
                     start_idx = dimensions[prev_dim][-1] + 1
-                    self.logger.debug(f"Last dimension {dim_num} starts at index {start_idx}")
                     col_indices = list(range(start_idx, last_question_col + 1))
-                    self.logger.debug(f"Last dimension {dim_num} indices: {col_indices}")
+                    self.logger.info(f"Last dimension - Range: {start_idx} to {last_question_col}")
+                    self.logger.info(f"Generated indices: {','.join(map(str, col_indices))}")
                 
-                # Map indices to column names
                 dim_cols = [self.data.columns[idx] for idx in col_indices if idx < len(self.data.columns)]
                 
                 if dim_cols:
                     self.dimensions[dim_num] = dim_cols
-                    self.logger.info(f"Dimension {dim_num} mapped to {len(dim_cols)} columns: {dim_cols}")
+                    self.logger.info(f"Column names ({len(dim_cols)}): {','.join(dim_cols)}")
                 else:
-                    self.logger.warning(f"Dimension {dim_num} has no valid columns")
+                    self.logger.warning(f"No valid columns found")
+                
+                self.logger.info("-"*80)
             
             # Verify all questions are assigned to dimensions
             total_dim_cols = sum(len(cols) for cols in self.dimensions.values())
