@@ -29,16 +29,28 @@ class StatisticalAnalyzer:
             self.logger.info(f"Successfully loaded data with {len(self.data)} rows")
             self.logger.debug(f"Column names: {list(self.data.columns)}")
             
-            # Convert column indices to column names
-            self.questions = [self.data.columns[i] for i in selected_columns]
+            # Find the first question column
+            first_question_col = selected_columns[0]
+            
+            # Convert column indices to column names, starting from the first selected column
+            self.questions = [self.data.columns[i] for i in range(first_question_col, selected_columns[-1] + 1)]
             self.logger.debug(f"Mapped column names: {self.questions}")
             
-            # Convert dimension indices to column names
+            # Recalculate dimensions based on the first question column
             self.dimensions = {}
+            current_start = first_question_col
             for dim_name, col_indices in dimensions.items():
-                dim_cols = [self.data.columns[i] for i in col_indices]
+                # Find the start and end of each dimension relative to the first question column
+                dim_start = max(current_start, col_indices[0])
+                dim_end = min(col_indices[-1], selected_columns[-1])
+                
+                # Select dimension columns
+                dim_cols = [self.data.columns[i] for i in range(dim_start, dim_end + 1)]
                 self.dimensions[dim_name] = dim_cols
                 self.logger.debug(f"Dimension {dim_name} columns: {dim_cols}")
+                
+                # Update current start for next dimension
+                current_start = dim_end + 1
                 
         except Exception as e:
             self.logger.error(f"Error initializing analyzer: {str(e)}")

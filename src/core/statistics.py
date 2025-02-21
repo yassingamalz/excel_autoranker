@@ -2,16 +2,39 @@ import pandas as pd
 import numpy as np
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
+import logging
 
 def calculate_cronbach_alpha(data, questions):
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, 
+                        format='%(message)s', 
+                        filename='cronbach_alpha_log.txt', 
+                        filemode='w')
+    logger = logging.getLogger()
+    
     # Convert to numeric, ensuring all questions are processed
     df = data[questions].apply(pd.to_numeric, errors='coerce')
+    
+    # Log the questions
+    logger.info("Questions used in analysis:")
+    logger.info(', '.join(questions))
+    
+    # Log individual participant scores
+    logger.info("\nParticipant Scores:")
+    participant_scores = df.sum(axis=1)
+    for idx, score in enumerate(participant_scores, 1):
+        logger.info(f"Participant {idx}: {score}")
     
     # Number of items
     n_items = len(questions)
     
     # Individual question variances
     question_variances = df.var()
+    
+    # Log individual question variances
+    logger.info("\nIndividual Question Variances:")
+    for q, var in question_variances.items():
+        logger.info(f"{q}: {var}")
     
     # Sum of question variances
     sum_question_variances = question_variances.sum()
@@ -25,6 +48,13 @@ def calculate_cronbach_alpha(data, questions):
     # Cronbach's Alpha calculation
     # α = (k / (k-1)) * (1 - (Σs²ᵢ / s²ₜ))
     cronbach_alpha = (n_items / (n_items - 1)) * (1 - (sum_question_variances / total_variance))
+    
+    # Log key statistics
+    logger.info("\nKey Statistics:")
+    logger.info(f"Number of Items: {n_items}")
+    logger.info(f"Sum of Question Variances: {sum_question_variances}")
+    logger.info(f"Total Score Variance: {total_variance}")
+    logger.info(f"Cronbach's Alpha: {cronbach_alpha}")
     
     return {
         'n_items': n_items,
