@@ -26,10 +26,34 @@ class StatisticsManager:
             self.logger.info(f"Questions: {','.join(dim_cols)}")
             self.logger.info("-"*40)
 
+    def calculate_per_question_alpha(self) -> Dict:
+        """Calculate Cronbach's Alpha excluding each question one at a time"""
+        per_question_results = {}
+        
+        self.logger.info("Calculating per-question Cronbach's Alpha")
+        
+        # Calculate baseline alpha with all questions
+        baseline_alpha = self.cronbach.calculate(self.data, self.questions)['alpha']
+        
+        for question in self.questions:
+            # Create list of questions excluding current one
+            remaining_questions = [q for q in self.questions if q != question]
+            
+            # Calculate alpha without this question
+            alpha_without = self.cronbach.calculate(self.data, remaining_questions)['alpha']
+            
+            # Store results
+            per_question_results[question] = {
+                'alpha_if_deleted': alpha_without,
+                'alpha_change': alpha_without - baseline_alpha
+            }
+            
+            self.logger.debug(f"Question {question}: Alpha if deleted = {alpha_without:.4f}, Change = {alpha_without - baseline_alpha:.4f}")
+        
+        return per_question_results
+
     def analyze_and_export(self, output_dir: str = '/app/data/output') -> str:
-        """
-        Run statistical analysis and export to Excel
-        """
+        """Run statistical analysis and export to Excel"""
         try:
             # Ensure output directory exists
             os.makedirs(output_dir, exist_ok=True)
@@ -57,6 +81,10 @@ class StatisticsManager:
                     CronbachFormatter.format_results_to_sheet(dim_sheet, dim_alpha_results)
                 else:
                     self.logger.error(f"Failed to calculate Cronbach's Alpha for dimension {dim_num}")
+
+            # Add per-question analysis sheet
+            per_question_sheet = wb.create_sheet(title="Question Analysis")
+            self.format_per_question_results(per_question_sheet)
             
             # Save workbook
             output_file = os.path.join(output_dir, 'statistical_analysis.xlsx')
@@ -68,3 +96,40 @@ class StatisticsManager:
         except Exception as e:
             self.logger.error(f"Error in analyze_and_export: {str(e)}")
             raise
+
+    def format_per_question_results(self, ws):
+        """Format per-question analysis results in worksheet"""
+        # Headers
+        headers = [
+            "Question / السؤال",
+            "Alpha if Deleted / معامل ألفا عند الحذف",
+            "Change in Alpha / التغير في معامل ألفا",
+            "Impact / التأثير"
+        ]
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            CronbachFormatter._apply_header_style(cell)
+        
+        # Calculate per-question results
+        results = self.calculate_per_question_alpha()
+        
+        # Add data rows
+        for row, (question, data) in enumerate(results.items(), 2):
+            ws.cell(row=row, column=1, value=question)
+            ws.cell(row=row, column=2, value=round(data['alpha_if_deleted'], 6))
+            change = data['alpha_change']
+            ws.cell(row=row, column=3, value=round(change, 6))
+            
+            # Add impact interpretation
+            impact = ("Improves reliability / يحسن الثبات" if change > 0 else 
+                     "Reduces reliability / يقلل الثبات" if change < 0 else 
+                     "No impact / لا تأثير")
+            ws.cell(row=row, column=4, value=impact)
+            
+            # Apply styling to all cells in row
+            for col in range(1, 5):
+                CronbachFormatter._apply_data_style(ws.cell(row=row, column=col))
+        
+        # Adjust column widths
+        CronbachFormatter._adjust_column_widths(ws)
