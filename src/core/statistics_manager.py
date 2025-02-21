@@ -5,7 +5,9 @@ import logging
 from typing import List, Dict
 import os
 from .statistics.cronbach_alpha import CronbachAlphaCalculator
+from .statistics.split_half import SplitHalfCalculator
 from .formatters.cronbach_formatter import CronbachFormatter
+from .formatters.split_half_formatter import SplitHalfFormatter
 
 class StatisticsManager:
     def __init__(self, data: pd.DataFrame, questions: List[str], dimensions: Dict[str, List[str]]):
@@ -14,6 +16,7 @@ class StatisticsManager:
         self.questions = questions
         self.dimensions = dimensions
         self.cronbach = CronbachAlphaCalculator()
+        self.split_half = SplitHalfCalculator()
         
         self.logger.info("\n" + "="*80)
         self.logger.info("STATISTICS CALCULATION SETUP")
@@ -67,20 +70,33 @@ class StatisticsManager:
             self.logger.info(f"Total Cronbach's Alpha: {total_alpha_results.get('alpha', 'N/A')}")
             CronbachFormatter.format_results(wb, total_alpha_results)
             
-            # Calculate and format dimensional Cronbach's Alpha
-            self.logger.info("Calculating dimensional Cronbach's Alpha")
+            # Calculate and format Split-Half reliability
+            self.logger.info("Calculating Split-Half reliability")
+            split_half_results = self.split_half.calculate(self.data, self.questions)
+            split_half_sheet = wb.create_sheet(title="Split Half")
+            SplitHalfFormatter.format_results_to_sheet(split_half_sheet, split_half_results)
+            
+            # Calculate and format dimensional Cronbach's Alpha and Split-Half
+            self.logger.info("Calculating dimensional statistics")
             for dim_num, dim_questions in self.dimensions.items():
                 self.logger.debug(f"Processing dimension {dim_num} with {len(dim_questions)} questions")
-                self.logger.debug(f"Dimension {dim_num} questions: {dim_questions}")
                 
+                # Calculate both Cronbach's Alpha and Split-Half for each dimension
                 dim_alpha_results = self.cronbach.calculate(self.data, dim_questions)
+                dim_split_half_results = self.split_half.calculate(self.data, dim_questions)
+                
                 self.logger.info(f"Dimension {dim_num} Cronbach's Alpha: {dim_alpha_results.get('alpha', 'N/A')}")
+                self.logger.info(f"Dimension {dim_num} Split-Half: {dim_split_half_results.get('spearman_brown', 'N/A')}")
                 
                 if dim_alpha_results['status'] == 'success':
-                    dim_sheet = wb.create_sheet(title=f"Dimension {dim_num}")
-                    CronbachFormatter.format_results_to_sheet(dim_sheet, dim_alpha_results)
+                    # Create sheets for both analyses
+                    alpha_sheet = wb.create_sheet(title=f"Dimension {dim_num} Alpha")
+                    split_half_sheet = wb.create_sheet(title=f"Dimension {dim_num} Split")
+                    
+                    CronbachFormatter.format_results_to_sheet(alpha_sheet, dim_alpha_results)
+                    SplitHalfFormatter.format_results_to_sheet(split_half_sheet, dim_split_half_results)
                 else:
-                    self.logger.error(f"Failed to calculate Cronbach's Alpha for dimension {dim_num}")
+                    self.logger.error(f"Failed to calculate statistics for dimension {dim_num}")
 
             # Add per-question analysis sheet
             per_question_sheet = wb.create_sheet(title="Question Analysis")
