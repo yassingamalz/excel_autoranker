@@ -6,8 +6,10 @@ from typing import List, Dict
 import os
 from .statistics.cronbach_alpha import CronbachAlphaCalculator
 from .statistics.split_half import SplitHalfCalculator
+from .statistics.construct_validity import ConstructValidityCalculator
 from .formatters.cronbach_formatter import CronbachFormatter
 from .formatters.split_half_formatter import SplitHalfFormatter
+from .formatters.construct_formatter import ConstructValidityFormatter
 
 class StatisticsManager:
     def __init__(self, data: pd.DataFrame, questions: List[str], dimensions: Dict[str, List[str]]):
@@ -17,6 +19,7 @@ class StatisticsManager:
         self.dimensions = dimensions
         self.cronbach = CronbachAlphaCalculator()
         self.split_half = SplitHalfCalculator()
+        self.construct_validity = ConstructValidityCalculator()
         
         self.logger.info("\n" + "="*80)
         self.logger.info("STATISTICS CALCULATION SETUP")
@@ -75,6 +78,14 @@ class StatisticsManager:
             split_half_results = self.split_half.calculate(self.data, self.questions)
             split_half_sheet = wb.create_sheet(title="Split Half")
             SplitHalfFormatter.format_results_to_sheet(split_half_sheet, split_half_results)
+            
+            # Calculate and format Construct Validity
+            self.logger.info("Calculating Construct Validity")
+            construct_validity_results = self.construct_validity.calculate(
+                self.data, self.questions, self.dimensions
+            )
+            construct_validity_sheet = wb.create_sheet(title="Construct Validity")
+            ConstructValidityFormatter.format_results_to_sheet(construct_validity_sheet, construct_validity_results)
             
             # Calculate and format dimensional Cronbach's Alpha and Split-Half
             self.logger.info("Calculating dimensional statistics")
