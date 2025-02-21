@@ -1,3 +1,4 @@
+# src/gui/layouts/main_layout.py
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, 
                              QFileDialog, QMessageBox, QApplication)
 from PyQt5.QtCore import pyqtSignal
@@ -64,17 +65,11 @@ class MainLayout(QWidget):
             
             self.progress.update_progress(10, "Starting analysis...")
             
-            # Create dimensions dictionary for analyzer
-            dimensions = {
-                str(dim_num): self.question_selector.selected_questions[cols[0]:cols[-1]+1]
-                for dim_num, cols in self.dimension_config.dimension_data.items()
-            }
-            
-            # Initialize analyzer
+            # Pass original dimension data directly
             analyzer = StatisticalAnalyzer(
                 self.selected_file,
                 self.question_selector.selected_questions,
-                dimensions
+                self.dimension_config.dimension_data
             )
             
             self.progress.update_progress(30, "Running statistical analysis...")

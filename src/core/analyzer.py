@@ -8,31 +8,25 @@ class StatisticalAnalyzer:
     def __init__(self, data_file, selected_columns, dimensions):
         self.logger = AppLogger.get_logger()
         self.logger.info(f"Initializing StatisticalAnalyzer with {data_file}")
-        self.logger.debug(f"Selected columns: {selected_columns}")
-        self.logger.debug(f"Dimensions data received: {dimensions}")
+        
+        # Log initial inputs
+        self.logger.info("\n" + "="*80)
+        self.logger.info("INPUT PARAMETERS")
+        self.logger.info(f"Selected columns range: {selected_columns[0]} -> {selected_columns[-1]}")
+        self.logger.info(f"Raw dimensions data: {dimensions}")
+        self.logger.info("="*80)
         
         try:
-            # Read Excel file with explicit sheet name handling
+            # Read Excel file
             xl = pd.ExcelFile(data_file)
-            self.logger.debug(f"Available sheets: {xl.sheet_names}")
-            
-            # Use first sheet by default
             sheet_name = xl.sheet_names[0]
-            self.logger.info(f"Reading from sheet: {sheet_name}")
-            
             self.data = pd.read_excel(data_file, sheet_name=sheet_name)
-            self.logger.info(f"Successfully loaded data with {len(self.data)} rows")
-            self.logger.debug(f"Column names: {list(self.data.columns)}")
+            self.logger.info(f"Successfully loaded data: {len(self.data)} rows, {len(self.data.columns)} columns")
             
-            # Find the first question column
+            # Map questions based on selected range
             first_question_col = selected_columns[0]
             last_question_col = selected_columns[-1]
-            self.logger.debug(f"First question column index: {first_question_col}")
-            self.logger.debug(f"Last question column index: {last_question_col}")
-            
-            # Convert column indices to column names, starting from the first selected column
             self.questions = [self.data.columns[i] for i in range(first_question_col, last_question_col + 1)]
-            self.logger.debug(f"Total question columns mapped: {len(self.questions)}")
             
             # Process dimensions - Map column indices to actual column names
             self.dimensions = {}
@@ -43,20 +37,26 @@ class StatisticalAnalyzer:
             self.logger.info(f"Total number of dimensions to process: {len(sorted_dim_nums)}")
             self.logger.info("="*80)
             
+            # Track last processed index
+            last_index = first_question_col
+            
             for i, dim_num in enumerate(sorted_dim_nums):
                 self.logger.info("\n" + "-"*80)
                 self.logger.info(f"DIMENSION {dim_num} ({i+1}/{len(sorted_dim_nums)})")
                 
                 if i < len(sorted_dim_nums) - 1:
-                    col_indices = dimensions[dim_num]
-                    self.logger.info(f"Original column indices: {','.join(map(str, col_indices))}")
+                    # Check if we need to skip to next sequence start
+                    current_indices = dimensions[dim_num]
+                    if current_indices[0] > last_index:
+                        self.logger.info(f"Skipping gap from {last_index} to {current_indices[0]}")
+                        last_index = current_indices[0]
+                    col_indices = [idx for idx in range(last_index, current_indices[-1] + 1)]
+                    last_index = current_indices[-1] + 1
                 else:
-                    prev_dim = sorted_dim_nums[i-1]
-                    start_idx = dimensions[prev_dim][-1] + 1
-                    col_indices = list(range(start_idx, last_question_col + 1))
-                    self.logger.info(f"Last dimension - Range: {start_idx} to {last_question_col}")
-                    self.logger.info(f"Generated indices: {','.join(map(str, col_indices))}")
+                    # Last dimension takes all remaining columns
+                    col_indices = list(range(last_index, last_question_col + 1))
                 
+                self.logger.info(f"Processing indices: {','.join(map(str, col_indices))}")
                 dim_cols = [self.data.columns[idx] for idx in col_indices if idx < len(self.data.columns)]
                 
                 if dim_cols:
@@ -67,7 +67,7 @@ class StatisticalAnalyzer:
                 
                 self.logger.info("-"*80)
             
-            # Verify all questions are assigned to dimensions
+            # Verify mapping
             total_dim_cols = sum(len(cols) for cols in self.dimensions.values())
             self.logger.info(f"Total columns in dimensions: {total_dim_cols}")
             self.logger.info(f"Total question columns: {len(self.questions)}")
@@ -88,8 +88,6 @@ class StatisticalAnalyzer:
             self.clean_data()
             
             # Create statistics manager and run analysis
-            self.logger.info("Creating statistics manager")
-            self.logger.debug(f"Passing {len(self.questions)} questions and {len(self.dimensions)} dimensions")
             stats_manager = StatisticsManager(self.data, self.questions, self.dimensions)
             output_file = stats_manager.analyze_and_export(output_dir)
             
