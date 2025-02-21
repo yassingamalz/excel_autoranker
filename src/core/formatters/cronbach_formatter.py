@@ -12,7 +12,7 @@ class CronbachFormatter:
         Format Cronbach's Alpha results into a worksheet
         """
         ws = wb.active
-        ws.title = "Cronbach's Alpha / معامل ألفا"
+        ws.title = "Cronbach Alpha - معامل ألفا"
         
         # Apply headers
         headers = [
