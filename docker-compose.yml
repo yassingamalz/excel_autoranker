@@ -9,6 +9,7 @@ services:
     environment:
       - DISPLAY=${DISPLAY}
       - QT_QPA_PLATFORM=xcb
+      - DISPLAY=host.docker.internal:0.0
       - PYTHONUNBUFFERED=1
     network_mode: host  # Required for X11
     ipc: host  # Helps with Qt shared memory issues
